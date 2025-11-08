@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: embeddings-worker
+  namespace: veggiescore
+  labels:
+    app: embeddings-worker
+    component: worker
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: embeddings-worker
+  template:
+    metadata:
+      labels:
+        app: embeddings-worker
+        component: worker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      containers:
+      - name: worker
+        image: veggiescore/embeddings-worker:latest
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "400m"
+        env:
+        - name: SUPABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: veggiescore-secrets
+              key: supabase-url
+        - name: SUPABASE_SERVICE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: veggiescore-secrets
+              key: supabase-service-key
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: veggiescore-secrets
+              key: openai-api-key
+        - name: BACKFILL_ON_START
+          value: "false"
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: embeddings-worker
+  namespace: veggiescore
+spec:
+  selector:
+    app: embeddings-worker
+  ports:
+  - name: metrics
+    port: 9090
+  clusterIP: None

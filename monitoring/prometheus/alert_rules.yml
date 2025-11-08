@@ -1,0 +1,176 @@
+groups:
+  - name: veggiescore_system
+    interval: 30s
+    rules:
+      # Worker Health Alerts
+      - alert: HighOCRFailureRate
+        expr: rate(ocr_jobs_failed_total[5m]) / rate(ocr_jobs_processed_total[5m]) > 0.2
+        for: 5m
+        labels:
+          severity: critical
+          component: ocr-worker
+        annotations:
+          summary: "OCR failure rate above 20%"
+          description: "OCR workers are failing at {{ $value | humanizePercentage }} rate"
+          runbook: "https://docs.veggiescore.com/runbooks/ocr-failure-rate"
+
+      - alert: WorkerQueueBacklog
+        expr: redis_queue_length{queue=~"ocr|crawl|parse"} > 1000
+        for: 10m
+        labels:
+          severity: warning
+          component: workers
+        annotations:
+          summary: "Worker queue {{ $labels.queue }} has >1000 pending jobs"
+          description: "Queue {{ $labels.queue }} depth: {{ $value }} jobs"
+          runbook: "https://docs.veggiescore.com/runbooks/queue-backlog"
+
+      - alert: WorkerDown
+        expr: up{job=~".*-worker"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: workers
+        annotations:
+          summary: "Worker {{ $labels.job }} is down"
+          description: "Worker {{ $labels.job }} has been down for 5 minutes"
+          runbook: "https://docs.veggiescore.com/runbooks/worker-down"
+
+      # API Performance Alerts
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "P95 API latency above 1s"
+          description: "P95 latency for {{ $labels.route }}: {{ $value }}s"
+          runbook: "https://docs.veggiescore.com/runbooks/api-latency"
+
+      - alert: HighAPIErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "API error rate above 5%"
+          description: "Error rate for {{ $labels.route }}: {{ $value | humanizePercentage }}"
+          runbook: "https://docs.veggiescore.com/runbooks/api-errors"
+
+      # Database Alerts
+      - alert: HighDatabaseConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Database connection pool above 80%"
+          description: "{{ $value | humanizePercentage }} of connections in use"
+          runbook: "https://docs.veggiescore.com/runbooks/database-connections"
+
+      - alert: SlowDatabaseQueries
+        expr: rate(pg_stat_statements_mean_time_seconds[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Average query time: {{ $value }}s"
+          runbook: "https://docs.veggiescore.com/runbooks/slow-queries"
+
+      # Resource Alerts
+      - alert: HighMemoryUsage
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: resources
+        annotations:
+          summary: "High memory usage in {{ $labels.pod }}"
+          description: "Memory usage: {{ $value | humanizePercentage }}"
+          runbook: "https://docs.veggiescore.com/runbooks/high-memory"
+
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total[5m]) / container_spec_cpu_quota > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          component: resources
+        annotations:
+          summary: "High CPU usage in {{ $labels.pod }}"
+          description: "CPU usage: {{ $value | humanizePercentage }}"
+          runbook: "https://docs.veggiescore.com/runbooks/high-cpu"
+
+  - name: veggiescore_business
+    interval: 60s
+    rules:
+      # Business Metrics Alerts
+      - alert: LowDailyActiveUsers
+        expr: daily_active_users < 10
+        for: 1h
+        labels:
+          severity: warning
+          component: business
+        annotations:
+          summary: "DAU dropped below 10"
+          description: "Only {{ $value }} daily active users in the last hour"
+
+      - alert: LowSearchVolume
+        expr: rate(searches_total[1h]) < 0.1
+        for: 2h
+        labels:
+          severity: warning
+          component: business
+        annotations:
+          summary: "Search volume very low"
+          description: "Only {{ $value }} searches per second"
+
+      - alert: LowDiscoveryRate
+        expr: rate(places_discovered_total[24h]) < 1
+        for: 4h
+        labels:
+          severity: warning
+          component: business
+        annotations:
+          summary: "New place discovery rate very low"
+          description: "Less than 1 new place per day"
+
+      - alert: HighChurnRate
+        expr: rate(users_churned_total[24h]) / rate(users_activated_total[24h]) > 0.5
+        for: 6h
+        labels:
+          severity: warning
+          component: business
+        annotations:
+          summary: "User churn rate above 50%"
+          description: "Churn rate: {{ $value | humanizePercentage }}"
+
+  - name: veggiescore_slo
+    interval: 30s
+    rules:
+      # Service Level Objective Alerts
+      - alert: APIAvailabilitySLOBreach
+        expr: (rate(http_requests_total{status!~"5.."}[30m]) / rate(http_requests_total[30m])) < 0.999
+        for: 5m
+        labels:
+          severity: critical
+          component: slo
+        annotations:
+          summary: "API availability below 99.9% SLO"
+          description: "Availability: {{ $value | humanizePercentage }}"
+          runbook: "https://docs.veggiescore.com/runbooks/slo-breach"
+
+      - alert: SearchLatencySLOBreach
+        expr: histogram_quantile(0.95, rate(search_duration_seconds_bucket[30m])) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          component: slo
+        annotations:
+          summary: "Search P95 latency above 500ms SLO"
+          description: "P95 latency: {{ $value }}s"
+          runbook: "https://docs.veggiescore.com/runbooks/search-latency"

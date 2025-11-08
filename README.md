@@ -171,11 +171,11 @@ The project is organized into 5 phases over 16 weeks:
 - VeggieScore v2 algorithm (variety + quality + balance)
 - Vector search with pgvector IVFFlat index
 
-### 📋 Phase 5: Hardening, Scaling & Polish (Weeks 15-16)
-- Autoscaling workers (Kubernetes HPA)
-- Monitoring & alerting (Prometheus, Grafana)
-- A/B testing framework
-- Performance optimization
+### ✅ Phase 5: Hardening, Scaling & Polish (Weeks 15-16) - COMPLETED
+- Autoscaling workers (Kubernetes HPA with queue-based scaling)
+- Monitoring & alerting (Prometheus, Grafana, Sentry)
+- A/B testing framework (experiments, variants, statistical analysis)
+- Performance optimization (DB indexes, Redis caching, CDN)
 
 See [buildplan/README.md](buildplan/README.md) for detailed task breakdown.
 
@@ -189,6 +189,7 @@ See [buildplan/README.md](buildplan/README.md) for detailed task breakdown.
 - **[PHASE_2_COMPLETE.md](PHASE_2_COMPLETE.md)** - Phase 2 completion summary
 - **[PHASE_3_COMPLETE.md](PHASE_3_COMPLETE.md)** - Phase 3 completion summary
 - **[PHASE_4_COMPLETE.md](PHASE_4_COMPLETE.md)** - Phase 4 completion summary
+- **[PHASE_5_COMPLETE.md](PHASE_5_COMPLETE.md)** - Phase 5 completion summary
 - **[buildplan/](buildplan/)** - 24 detailed task files with implementation guides
 - **[mobile/README.md](mobile/README.md)** - Mobile app setup and documentation
 - **[admin/README.md](admin/README.md)** - Admin dashboard documentation
