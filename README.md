@@ -57,40 +57,57 @@ VeggieScore is a platform that helps people discover plant-based dining options 
 
 ## Quick Start
 
-### Prerequisites
-- Node.js 18+
-- Docker and Docker Compose
-- Supabase CLI: `npm install -g supabase`
-- Git
+### Local Development with Docker (Recommended)
 
-### Installation
+The easiest way to get started is using Docker:
 
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/veggiescore-v3.git
 cd veggiescore-v3
 
+# Configure environment
+cp .env.example .env
+# Edit .env with your credentials
+
+# Start all services with one command
+./start-local.sh start
+```
+
+**Services will be available at:**
+- Admin Dashboard: http://localhost:3000
+- PostgreSQL: localhost:5432
+- Redis: localhost:6379
+
+See **[LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)** for detailed setup guide, troubleshooting, and development workflows.
+
+### Manual Installation (Advanced)
+
+If you prefer to run services individually:
+
+```bash
+# Prerequisites
+- Node.js 18+
+- Docker and Docker Compose
+- Supabase CLI: npm install -g supabase
+- Python 3.11+ (for OCR worker)
+
 # Install dependencies
 cd workers && npm install && cd ..
 
-# Start Supabase
-supabase start
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your Supabase credentials
+# Start infrastructure
+docker-compose up -d redis postgres
 
 # Run migrations
 supabase db push
 
-# Seed database
-supabase db seed seed.sql
+# Start workers individually
+cd workers/crawler && npm start
+cd workers/parser && npm start
+# ... etc
 
-# Start Redis
-docker-compose up -d redis
-
-# Start Edge Functions
-supabase functions serve
+# Start admin dashboard
+cd admin && npm run dev
 ```
 
 For detailed setup instructions, see [PHASE_0_SETUP.md](PHASE_0_SETUP.md).

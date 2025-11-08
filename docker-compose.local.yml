@@ -1,0 +1,118 @@
+# Docker Compose Local Development Override
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.local.yml up
+
+version: '3.8'
+
+services:
+  # Redis - expose port for local access
+  redis:
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-local-data:/data
+
+  # PostgreSQL - expose port for local access
+  postgres:
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-local-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: veggiescore
+
+  # Crawler Worker - enable debugging
+  crawler-worker:
+    build:
+      context: ./workers/crawler
+      dockerfile: Dockerfile
+    volumes:
+      - ./workers/crawler:/app
+      - ./workers/shared:/app/shared
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DEBUG=crawler:*
+    command: npm run dev
+
+  # OCR Worker - local development
+  ocr-worker:
+    build:
+      context: ./workers/ocr
+      dockerfile: Dockerfile
+    volumes:
+      - ./workers/ocr:/app
+      - /app/__pycache__
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=DEBUG
+    deploy:
+      replicas: 1  # Reduce replicas for local dev
+
+  # Parser Worker - enable hot reload
+  parser-worker:
+    build:
+      context: .
+      dockerfile: workers/parser/Dockerfile
+    volumes:
+      - ./workers/parser:/app
+      - ./workers/shared:/app/shared
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DEBUG=parser:*
+
+  # Labeler Worker - local development
+  labeler-worker:
+    build:
+      context: .
+      dockerfile: workers/labeler/Dockerfile
+    volumes:
+      - ./workers/labeler:/app
+      - ./workers/shared:/app/shared
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DEBUG=labeler:*
+    deploy:
+      replicas: 1  # Reduce replicas for local dev
+
+  # Embeddings Worker - local development
+  embeddings-worker:
+    build:
+      context: ./workers/embeddings
+      dockerfile: Dockerfile
+    volumes:
+      - ./workers/embeddings:/app
+      - /app/__pycache__
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=DEBUG
+      - BACKFILL_ON_START=false
+
+  # Admin Dashboard - with hot reload
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    container_name: veggiescore-admin
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./admin:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+    networks:
+      - veggiescore-network
+    restart: unless-stopped
+    command: npm run dev
+
+volumes:
+  redis-local-data:
+  postgres-local-data:
