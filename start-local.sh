@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # VeggieScore Local Development Startup Script
-# Builds and starts all services for local testing
+# Builds and starts all services for local testing with Supabase Local
 
 set -e  # Exit on error
 
@@ -53,6 +53,16 @@ check_prerequisites() {
         print_success "Docker Compose $(docker-compose --version | cut -d' ' -f3)"
     fi
 
+    # Check Supabase CLI
+    if ! command -v supabase &> /dev/null; then
+        print_warning "Supabase CLI is not installed"
+        echo "  Install with: npm install -g supabase"
+        echo "  Or: brew install supabase/tap/supabase (macOS)"
+        missing=1
+    else
+        print_success "Supabase CLI $(supabase --version | cut -d' ' -f3)"
+    fi
+
     # Check if Docker daemon is running
     if ! docker info &> /dev/null; then
         print_error "Docker daemon is not running"
@@ -67,7 +77,7 @@ check_prerequisites() {
         if [ -f .env.example ]; then
             cp .env.example .env
             print_success "Created .env file"
-            print_warning "Please edit .env with your configuration"
+            print_warning "Note: Supabase local will auto-configure most variables"
         else
             print_error ".env.example not found"
             missing=1
@@ -79,6 +89,38 @@ check_prerequisites() {
     if [ $missing -eq 1 ]; then
         print_error "Prerequisites check failed. Please install missing dependencies."
         exit 1
+    fi
+}
+
+# Start Supabase local
+start_supabase() {
+    print_header "Starting Supabase Local"
+
+    if supabase status &> /dev/null; then
+        print_success "Supabase is already running"
+    else
+        echo "Initializing Supabase (this may take a minute on first run)..."
+        supabase start
+
+        # Get the credentials
+        echo ""
+        print_success "Supabase started successfully!"
+        echo ""
+        echo -e "${BLUE}Supabase Credentials:${NC}"
+        supabase status | grep -E "(API URL|anon key|service_role key|DB URL|Studio URL)"
+        echo ""
+    fi
+}
+
+# Stop Supabase local
+stop_supabase() {
+    print_header "Stopping Supabase Local"
+
+    if supabase status &> /dev/null; then
+        supabase stop
+        print_success "Supabase stopped"
+    else
+        print_warning "Supabase is not running"
     fi
 }
 
@@ -102,13 +144,13 @@ build_images() {
 start_services() {
     print_header "Starting Services"
 
-    # Start infrastructure first
-    echo "Starting infrastructure services (Redis, PostgreSQL)..."
-    docker-compose -f docker-compose.yml -f docker-compose.local.yml up -d redis postgres
+    # Start Redis
+    echo "Starting Redis..."
+    docker-compose -f docker-compose.yml -f docker-compose.local.yml up -d redis
 
-    # Wait for infrastructure to be ready
-    echo "Waiting for infrastructure to be ready..."
-    sleep 5
+    # Wait for Redis to be ready
+    echo "Waiting for Redis to be ready..."
+    sleep 3
 
     # Start workers
     echo "Starting worker services..."
@@ -130,6 +172,11 @@ start_services() {
 show_status() {
     print_header "Service Status"
 
+    echo -e "${BLUE}Supabase Services:${NC}"
+    supabase status 2>/dev/null || echo "  Supabase not running"
+
+    echo ""
+    echo -e "${BLUE}Docker Services:${NC}"
     docker-compose -f docker-compose.yml -f docker-compose.local.yml ps
 }
 
@@ -137,13 +184,42 @@ show_status() {
 show_logs() {
     print_header "Service Logs"
 
-    echo -e "${YELLOW}Following logs (Ctrl+C to exit)...${NC}\n"
-    docker-compose -f docker-compose.yml -f docker-compose.local.yml logs -f
+    echo "Which logs would you like to view?"
+    echo "1) All Docker services"
+    echo "2) Crawler worker"
+    echo "3) OCR worker"
+    echo "4) Parser worker"
+    echo "5) Labeler worker"
+    echo "6) Embeddings worker"
+    echo "7) Admin dashboard"
+    echo "8) Redis"
+    echo "9) Supabase logs"
+    echo ""
+    read -p "Select an option (or press Enter for all): " log_choice
+
+    case $log_choice in
+        2) docker-compose -f docker-compose.yml -f docker-compose.local.yml logs -f crawler-worker ;;
+        3) docker-compose -f docker-compose.yml -f docker-compose.local.yml logs -f ocr-worker ;;
+        4) docker-compose -f docker-compose.yml -f docker-compose.local.yml logs -f parser-worker ;;
+        5) docker-compose -f docker-compose.yml -f docker-compose.local.yml logs -f labeler-worker ;;
+        6) docker-compose -f docker-compose.yml -f docker-compose.local.yml logs -f embeddings-worker ;;
+        7) docker-compose -f docker-compose.yml -f docker-compose.local.yml logs -f admin ;;
+        8) docker-compose -f docker-compose.yml -f docker-compose.local.yml logs -f redis ;;
+        9) docker logs -f supabase_db_veggiescore ;;
+        *) docker-compose -f docker-compose.yml -f docker-compose.local.yml logs -f ;;
+    esac
 }
 
 # Health check
 health_check() {
     print_header "Health Check"
+
+    # Check Supabase
+    if supabase status &> /dev/null; then
+        print_success "Supabase is healthy"
+    else
+        print_error "Supabase is not running"
+    fi
 
     # Check Redis
     if docker-compose -f docker-compose.yml -f docker-compose.local.yml exec -T redis redis-cli ping &> /dev/null; then
@@ -152,36 +228,59 @@ health_check() {
         print_error "Redis is not responding"
     fi
 
-    # Check PostgreSQL
-    if docker-compose -f docker-compose.yml -f docker-compose.local.yml exec -T postgres pg_isready -U postgres &> /dev/null; then
-        print_success "PostgreSQL is healthy"
-    else
-        print_error "PostgreSQL is not responding"
-    fi
-
     # Show URLs
     echo ""
     echo -e "${BLUE}Service URLs:${NC}"
-    echo -e "  PostgreSQL:       ${GREEN}localhost:5432${NC}"
+    echo -e "  Supabase Studio:  ${GREEN}http://localhost:54323${NC}"
+    echo -e "  Supabase API:     ${GREEN}http://localhost:54321${NC}"
+    echo -e "  Database:         ${GREEN}postgresql://postgres:postgres@localhost:54322/postgres${NC}"
     echo -e "  Redis:            ${GREEN}localhost:6379${NC}"
     echo -e "  Admin Dashboard:  ${GREEN}http://localhost:3000${NC}"
     echo ""
 }
 
+# Run database migrations
+run_migrations() {
+    print_header "Running Database Migrations"
+
+    if supabase status &> /dev/null; then
+        supabase db push
+        print_success "Migrations applied"
+    else
+        print_error "Supabase is not running. Start it first with './start-local.sh start'"
+    fi
+}
+
+# Reset database
+reset_database() {
+    print_header "Resetting Database"
+
+    read -p "This will delete all data. Are you sure? (y/N): " confirm
+    if [[ $confirm =~ ^[Yy]$ ]]; then
+        supabase db reset
+        print_success "Database reset complete"
+    else
+        print_warning "Database reset cancelled"
+    fi
+}
+
 # Main menu
 show_menu() {
     echo ""
-    echo "VeggieScore Local Development"
-    echo "=============================="
-    echo "1) Start all services"
-    echo "2) Stop all services"
-    echo "3) Restart all services"
-    echo "4) View logs"
-    echo "5) View status"
-    echo "6) Health check"
-    echo "7) Rebuild images"
-    echo "8) Clean up everything"
-    echo "9) Exit"
+    echo "VeggieScore Local Development (with Supabase Local)"
+    echo "===================================================="
+    echo "1)  Start all services"
+    echo "2)  Stop all services"
+    echo "3)  Restart all services"
+    echo "4)  View logs"
+    echo "5)  View status"
+    echo "6)  Health check"
+    echo "7)  Rebuild images"
+    echo "8)  Run database migrations"
+    echo "9)  Reset database"
+    echo "10) Open Supabase Studio"
+    echo "11) Clean up everything"
+    echo "12) Exit"
     echo ""
     read -p "Select an option: " choice
 }
@@ -190,6 +289,7 @@ show_menu() {
 case "${1:-menu}" in
     start)
         check_prerequisites
+        start_supabase
         cleanup
         build_images
         start_services
@@ -199,6 +299,7 @@ case "${1:-menu}" in
     stop)
         print_header "Stopping Services"
         docker-compose -f docker-compose.yml -f docker-compose.local.yml down
+        stop_supabase
         print_success "All services stopped"
         ;;
     restart)
@@ -219,9 +320,16 @@ case "${1:-menu}" in
         check_prerequisites
         build_images
         ;;
+    migrate)
+        run_migrations
+        ;;
+    reset)
+        reset_database
+        ;;
     clean)
         print_header "Cleaning Up Everything"
         docker-compose -f docker-compose.yml -f docker-compose.local.yml down -v --rmi local
+        supabase stop --no-backup
         print_success "Cleaned up all containers, volumes, and images"
         ;;
     menu)
@@ -230,6 +338,7 @@ case "${1:-menu}" in
             case $choice in
                 1)
                     check_prerequisites
+                    start_supabase
                     cleanup
                     build_images
                     start_services
@@ -238,6 +347,7 @@ case "${1:-menu}" in
                     ;;
                 2)
                     docker-compose -f docker-compose.yml -f docker-compose.local.yml down
+                    stop_supabase
                     print_success "All services stopped"
                     ;;
                 3)
@@ -257,10 +367,21 @@ case "${1:-menu}" in
                     build_images
                     ;;
                 8)
-                    docker-compose -f docker-compose.yml -f docker-compose.local.yml down -v --rmi local
-                    print_success "Cleaned up everything"
+                    run_migrations
                     ;;
                 9)
+                    reset_database
+                    ;;
+                10)
+                    echo "Opening Supabase Studio..."
+                    open "http://localhost:54323" 2>/dev/null || xdg-open "http://localhost:54323" 2>/dev/null || echo "Please open http://localhost:54323 in your browser"
+                    ;;
+                11)
+                    docker-compose -f docker-compose.yml -f docker-compose.local.yml down -v --rmi local
+                    supabase stop --no-backup
+                    print_success "Cleaned up everything"
+                    ;;
+                12)
                     print_success "Goodbye!"
                     exit 0
                     ;;
@@ -272,16 +393,18 @@ case "${1:-menu}" in
         done
         ;;
     *)
-        echo "Usage: $0 {start|stop|restart|logs|status|health|rebuild|clean|menu}"
+        echo "Usage: $0 {start|stop|restart|logs|status|health|rebuild|migrate|reset|clean|menu}"
         echo ""
         echo "Commands:"
-        echo "  start    - Build and start all services"
-        echo "  stop     - Stop all services"
+        echo "  start    - Build and start all services (including Supabase)"
+        echo "  stop     - Stop all services (including Supabase)"
         echo "  restart  - Restart all services"
-        echo "  logs     - View logs from all services"
+        echo "  logs     - View logs from services"
         echo "  status   - Show service status"
         echo "  health   - Run health check"
         echo "  rebuild  - Rebuild all images"
+        echo "  migrate  - Run database migrations"
+        echo "  reset    - Reset database (WARNING: deletes all data)"
         echo "  clean    - Remove all containers, volumes, and images"
         echo "  menu     - Show interactive menu (default)"
         exit 1

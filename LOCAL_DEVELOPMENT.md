@@ -14,6 +14,11 @@ Before starting, ensure you have the following installed:
   - Usually included with Docker Desktop
   - Verify: `docker-compose --version`
 
+- **Supabase CLI** (for local database and services)
+  - Install: `npm install -g supabase` or `brew install supabase/tap/supabase` (macOS)
+  - Verify: `supabase --version`
+  - [Supabase CLI Docs](https://supabase.com/docs/guides/cli)
+
 - **Git** (for cloning the repository)
   - Verify: `git --version`
 
@@ -45,10 +50,12 @@ nano .env  # or use your preferred editor
 **Required Environment Variables:**
 
 ```env
-# Supabase (for local testing, use Supabase local or cloud project)
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_KEY=your-service-role-key
+# Supabase - Auto-configured by Supabase CLI when using local development
+# After running ./start-local.sh start, Supabase credentials will be displayed
+# Default local values:
+SUPABASE_URL=http://localhost:54321
+SUPABASE_ANON_KEY=<shown-after-supabase-start>
+SUPABASE_SERVICE_KEY=<shown-after-supabase-start>
 
 # Redis
 REDIS_HOST=redis
@@ -60,6 +67,8 @@ OPENAI_API_KEY=your-openai-api-key
 # Optional: Sentry for error tracking
 SENTRY_DSN=your-sentry-dsn
 ```
+
+**Note:** When using Supabase local (`supabase start`), the startup script will automatically display the Supabase URL, anon key, and service role key. You can also view them anytime with `supabase status`.
 
 ### 3. Start All Services
 
@@ -83,11 +92,14 @@ The startup script will automatically check service health. You can also manuall
 # Check all services are running
 docker-compose -f docker-compose.yml -f docker-compose.local.yml ps
 
+# Check Supabase status
+supabase status
+
 # Check Redis
 docker-compose -f docker-compose.yml -f docker-compose.local.yml exec redis redis-cli ping
 
-# Check PostgreSQL
-docker-compose -f docker-compose.yml -f docker-compose.local.yml exec postgres pg_isready
+# Check PostgreSQL (via Supabase)
+psql -h localhost -p 54322 -U postgres -c "SELECT version();"
 ```
 
 ## Service URLs
@@ -96,7 +108,9 @@ Once all services are running:
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| PostgreSQL | `localhost:5432` | Database |
+| Supabase Studio | `http://localhost:54323` | Database UI & Management |
+| Supabase API | `http://localhost:54321` | REST & GraphQL API |
+| PostgreSQL | `localhost:54322` | Direct Database Access |
 | Redis | `localhost:6379` | Cache & Queue |
 | Admin Dashboard | `http://localhost:3000` | Admin UI |
 
@@ -120,8 +134,11 @@ This opens an interactive menu with options:
 5. View status
 6. Health check
 7. Rebuild images
-8. Clean up everything
-9. Exit
+8. Run database migrations
+9. Reset database
+10. Open Supabase Studio
+11. Clean up everything
+12. Exit
 
 ### Command Line Usage
 
@@ -146,6 +163,12 @@ This opens an interactive menu with options:
 
 # Rebuild all images
 ./start-local.sh rebuild
+
+# Run database migrations
+./start-local.sh migrate
+
+# Reset database (WARNING: deletes all data)
+./start-local.sh reset
 
 # Clean up everything (containers, volumes, images)
 ./start-local.sh clean
@@ -223,11 +246,13 @@ docker-compose -f docker-compose.yml -f docker-compose.local.yml exec parser-wor
 - Purpose: Job queue (BullMQ) and caching
 - Data: Persistent volume `redis-local-data`
 
-**PostgreSQL** (`supabase/postgres:15.1.0.117`)
-- Port: 5432
-- Purpose: Main database with pgvector and PostGIS
-- Data: Persistent volume `postgres-local-data`
-- Credentials: postgres/postgres
+**PostgreSQL** (Managed by Supabase CLI)
+- Port: 54322 (localhost)
+- Purpose: Main database with pgvector and PostGIS extensions
+- Management: Via Supabase Studio at http://localhost:54323
+- Data: Managed by Supabase in Docker volumes
+- Credentials: postgres/postgres (default local credentials)
+- Note: Supabase also provides Auth, Storage, and Edge Functions locally
 
 ### Worker Services
 
@@ -284,12 +309,14 @@ docker-compose -f docker-compose.yml -f docker-compose.local.yml logs -f crawler
 ### Running Database Migrations
 
 ```bash
-# If using Supabase CLI locally
+# Using Supabase CLI (recommended)
 supabase db push
 
+# Or via the startup script
+./start-local.sh migrate
+
 # Or manually via PostgreSQL
-docker-compose -f docker-compose.yml -f docker-compose.local.yml exec postgres \
-  psql -U postgres -d veggiescore -f /path/to/migration.sql
+psql -h localhost -p 54322 -U postgres -d postgres -f supabase/migrations/your_migration.sql
 ```
 
 ### Testing Workers
@@ -329,9 +356,16 @@ docker inspect veggiescore-crawler
 ### Seed Test Data
 
 ```bash
-# Run seed script
-docker-compose -f docker-compose.yml -f docker-compose.local.yml exec postgres \
-  psql -U postgres -d veggiescore -f /docker-entrypoint-initdb.d/seed.sql
+# Via Supabase Studio SQL Editor (recommended)
+# 1. Open http://localhost:54323
+# 2. Navigate to SQL Editor
+# 3. Run your seed scripts
+
+# Or via command line
+psql -h localhost -p 54322 -U postgres -d postgres -f supabase/seed/seed.sql
+
+# Or use Supabase db seed (if configured in config.toml)
+supabase db seed
 ```
 
 ### Clear Redis Queue
@@ -343,14 +377,15 @@ docker-compose -f docker-compose.yml -f docker-compose.local.yml exec redis redi
 ### Reset Database
 
 ```bash
-# Stop services
-docker-compose -f docker-compose.yml -f docker-compose.local.yml down -v
+# Using Supabase CLI (recommended)
+supabase db reset
 
-# Start fresh
-docker-compose -f docker-compose.yml -f docker-compose.local.yml up -d postgres
+# Or via the startup script
+./start-local.sh reset
 
-# Run migrations
-# ... run your migration commands
+# Or manually stop everything and restart
+./start-local.sh stop
+./start-local.sh start
 ```
 
 ### Monitor Resource Usage
@@ -419,12 +454,15 @@ docker stats veggiescore-ocr
 ### Database Connection Issues
 
 ```bash
-# Check if PostgreSQL is ready
-docker-compose -f docker-compose.yml -f docker-compose.local.yml exec postgres pg_isready
+# Check if Supabase is running
+supabase status
 
-# Check connection
-docker-compose -f docker-compose.yml -f docker-compose.local.yml exec postgres \
-  psql -U postgres -c "SELECT version();"
+# Check PostgreSQL connection
+psql -h localhost -p 54322 -U postgres -c "SELECT version();"
+
+# Restart Supabase if needed
+supabase stop
+supabase start
 ```
 
 ## Performance Tuning
@@ -537,10 +575,18 @@ docker system prune -a --volumes
 
 Once local development is running:
 
-1. **Run database migrations**: `supabase db push`
-2. **Seed test data**: See `supabase/seed/` directory
-3. **Access admin dashboard**: `http://localhost:3000`
-4. **Test workers**: Submit test jobs via admin or API
-5. **Monitor logs**: `./start-local.sh logs`
+1. **Run database migrations**: `./start-local.sh migrate` or `supabase db push`
+2. **Open Supabase Studio**: `http://localhost:54323` (or `./start-local.sh` menu option 10)
+3. **Seed test data**: Via Supabase Studio SQL editor or `supabase/seed/` scripts
+4. **Access admin dashboard**: `http://localhost:3000`
+5. **Test workers**: Submit test jobs via admin or API
+6. **Monitor logs**: `./start-local.sh logs`
+
+**Useful Supabase Commands:**
+- `supabase status` - View all service URLs and keys
+- `supabase db reset` - Reset database to clean state
+- `supabase db push` - Apply migrations
+- `supabase functions serve` - Run Edge Functions locally
+- `supabase stop` - Stop all Supabase services
 
 Happy coding! 🚀🌱
