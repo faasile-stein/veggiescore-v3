@@ -79,21 +79,46 @@ services:
   #   deploy:
   #     replicas: 3
 
-  # Parser Worker (to be implemented in Phase 2)
-  # parser-worker:
-  #   build:
-  #     context: ./workers/parser
-  #     dockerfile: Dockerfile
-  #   container_name: veggiescore-parser
-  #   environment:
-  #     - REDIS_URL=redis://redis:6379
-  #     - SUPABASE_URL=${SUPABASE_URL}
-  #     - SUPABASE_KEY=${SUPABASE_ANON_KEY}
-  #   depends_on:
-  #     - redis
-  #   networks:
-  #     - veggiescore-network
-  #   restart: unless-stopped
+  # Parser Worker (Phase 2)
+  parser-worker:
+    build:
+      context: .
+      dockerfile: workers/parser/Dockerfile
+    container_name: veggiescore-parser
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - WORKER_CONCURRENCY=2
+      - WORKER_ID=parser-01
+    depends_on:
+      - redis
+    networks:
+      - veggiescore-network
+    restart: unless-stopped
+
+  # Labeler Worker (Phase 2)
+  labeler-worker:
+    build:
+      context: .
+      dockerfile: workers/labeler/Dockerfile
+    container_name: veggiescore-labeler
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - WORKER_CONCURRENCY=3
+      - WORKER_ID=labeler-01
+    depends_on:
+      - redis
+    networks:
+      - veggiescore-network
+    restart: unless-stopped
+    deploy:
+      replicas: 2
 
 volumes:
   redis-data:
