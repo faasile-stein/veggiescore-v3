@@ -1,0 +1,64 @@
+# Grafana Dashboard Provisioning Configuration
+apiVersion: 1
+
+providers:
+  - name: 'VeggieScore Dashboards'
+    orgId: 1
+    folder: 'VeggieScore'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/dashboards
+
+# Dashboard List
+#
+# 1. System Overview Dashboard
+#    - Overall system health
+#    - Request rates, latency percentiles
+#    - Worker queue depths
+#    - Database performance
+#    - Resource utilization
+#
+# 2. Worker Health Dashboard
+#    - Individual worker metrics
+#    - Job processing rates
+#    - Success/failure rates
+#    - Processing time distributions
+#    - Queue depth trends
+#
+# 3. API Performance Dashboard
+#    - Endpoint latency (P50, P95, P99)
+#    - Request rates by endpoint
+#    - Error rates
+#    - Cache hit rates
+#    - Geographic distribution
+#
+# 4. Business Metrics Dashboard
+#    - DAU/MAU
+#    - User engagement (searches, discoveries)
+#    - Upload rates
+#    - Retention cohorts
+#    - Conversion funnels
+#
+# 5. Database Performance Dashboard
+#    - Query performance
+#    - Connection pool usage
+#    - Slow queries
+#    - Table sizes
+#    - Index usage
+#
+# 6. Cost Tracking Dashboard
+#    - Infrastructure costs
+#    - API costs (OpenAI)
+#    - Storage costs
+#    - Bandwidth costs
+#    - Cost per user
+#
+# Each dashboard should include:
+# - Time range selector
+# - Variable filters (environment, namespace, pod)
+# - Refresh rate options
+# - Links to related dashboards
+# - Alert annotations

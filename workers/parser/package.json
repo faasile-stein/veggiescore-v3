@@ -1,0 +1,19 @@
+{
+  "name": "@veggiescore/parser",
+  "version": "1.0.0",
+  "description": "Menu parser service for VeggieScore",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "bullmq": "^5.1.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

@@ -1,0 +1,10 @@
+# Embeddings Worker Dependencies
+
+# OpenAI
+openai==0.28.1
+
+# Supabase client
+supabase==2.0.3
+
+# Utilities
+python-dotenv==1.0.0

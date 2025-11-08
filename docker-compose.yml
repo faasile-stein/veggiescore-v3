@@ -1,0 +1,146 @@
+version: '3.8'
+
+services:
+  # Redis for job queue
+  redis:
+    image: redis:7-alpine
+    container_name: veggiescore-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - veggiescore-network
+
+  # PostgreSQL (optional - for local dev without Supabase Cloud)
+  postgres:
+    image: supabase/postgres:15.1.0.117
+    container_name: veggiescore-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - veggiescore-network
+
+  # Crawler Worker (Phase 1)
+  crawler-worker:
+    build:
+      context: ./workers/crawler
+      dockerfile: Dockerfile
+    container_name: veggiescore-crawler
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - WORKER_CONCURRENCY=3
+    depends_on:
+      - redis
+    networks:
+      - veggiescore-network
+    restart: unless-stopped
+
+  # OCR Worker (Phase 1)
+  ocr-worker:
+    build:
+      context: ./workers/ocr
+      dockerfile: Dockerfile
+    container_name: veggiescore-ocr
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - WORKER_CONCURRENCY=2
+    depends_on:
+      - redis
+    networks:
+      - veggiescore-network
+    restart: unless-stopped
+    deploy:
+      replicas: 3
+
+  # Parser Worker (Phase 2)
+  parser-worker:
+    build:
+      context: .
+      dockerfile: workers/parser/Dockerfile
+    container_name: veggiescore-parser
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - WORKER_CONCURRENCY=2
+      - WORKER_ID=parser-01
+    depends_on:
+      - redis
+    networks:
+      - veggiescore-network
+    restart: unless-stopped
+
+  # Labeler Worker (Phase 2)
+  labeler-worker:
+    build:
+      context: .
+      dockerfile: workers/labeler/Dockerfile
+    container_name: veggiescore-labeler
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - WORKER_CONCURRENCY=3
+      - WORKER_ID=labeler-01
+    depends_on:
+      - redis
+    networks:
+      - veggiescore-network
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+
+  # Embeddings Worker (Phase 4)
+  embeddings-worker:
+    build:
+      context: ./workers/embeddings
+      dockerfile: Dockerfile
+    container_name: veggiescore-embeddings
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - BACKFILL_ON_START=false
+    depends_on:
+      - redis
+    networks:
+      - veggiescore-network
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+  postgres-data:
+
+networks:
+  veggiescore-network:
+    driver: bridge

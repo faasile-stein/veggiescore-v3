@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ocr-worker
+  namespace: veggiescore
+  labels:
+    app: ocr-worker
+    component: worker
+    tier: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ocr-worker
+  template:
+    metadata:
+      labels:
+        app: ocr-worker
+        component: worker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: worker
+        image: veggiescore/ocr-worker:latest
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        env:
+        - name: SUPABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: veggiescore-secrets
+              key: supabase-url
+        - name: SUPABASE_SERVICE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: veggiescore-secrets
+              key: supabase-service-key
+        - name: WORKER_CONCURRENCY
+          value: "2"
+        - name: SENTRY_DSN
+          valueFrom:
+            secretKeyRef:
+              name: veggiescore-secrets
+              key: sentry-dsn
+              optional: true
+        - name: NODE_ENV
+          value: "production"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9090
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 9090
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ocr-worker
+  namespace: veggiescore
+  labels:
+    app: ocr-worker
+spec:
+  selector:
+    app: ocr-worker
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+  clusterIP: None  # Headless service for workers
