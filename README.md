@@ -147,17 +147,17 @@ The project is organized into 5 phases over 16 weeks:
 - Worker infrastructure (Redis, BullMQ)
 - Basic Edge Functions (4 endpoints)
 
-### 🚧 Phase 1: Crawler + OCR Workers (Weeks 3-5) - IN PROGRESS
+### 📋 Phase 1: Crawler + OCR Workers (Weeks 3-5) - PENDING
 - Web crawler with robots.txt compliance
 - OCR pipeline with PaddleOCR
 - Storage integration
 - Testing with 10+ restaurants
 
-### 📋 Phase 2: Parsing, Labeling & Admin (Weeks 6-8)
-- Menu parser service
-- AI dietary label classifier
-- Admin dashboard with RBAC
-- Manual override system
+### ✅ Phase 2: Parsing, Labeling & Admin (Weeks 6-8) - COMPLETED
+- Menu parser service (OCR + JSON-LD)
+- AI dietary label classifier (rule-based + LLM)
+- Admin dashboard with RBAC (Next.js)
+- Manual override system with audit logging
 
 ### 📋 Phase 3: Gamification + UX (Weeks 9-11)
 - Points, badges, and quests
