@@ -159,11 +159,11 @@ The project is organized into 5 phases over 16 weeks:
 - Admin dashboard with RBAC (Next.js)
 - Manual override system with audit logging
 
-### 📋 Phase 3: Gamification + UX (Weeks 9-11)
-- Points, badges, and quests
-- Mobile app (iOS + Android)
-- Leaderboards
-- Beta launch (50 users)
+### ✅ Phase 3: Gamification + UX (Weeks 9-11) - COMPLETED
+- Points, badges, and quests system
+- Mobile app (iOS + Android) with Expo
+- Leaderboards (daily, weekly, all-time)
+- User profile, badges, and quest tracking
 
 ### 📋 Phase 4: Embeddings & MunchMatcher (Weeks 12-14)
 - Embeddings pipeline
@@ -184,7 +184,12 @@ See [buildplan/README.md](buildplan/README.md) for detailed task breakdown.
 - **[PRODUCT.md](PRODUCT.md)** - Product overview and features
 - **[DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md)** - Comprehensive technical plan
 - **[PHASE_0_SETUP.md](PHASE_0_SETUP.md)** - Setup guide for local development
+- **[PHASE_0_COMPLETE.md](PHASE_0_COMPLETE.md)** - Phase 0 completion summary
+- **[PHASE_2_COMPLETE.md](PHASE_2_COMPLETE.md)** - Phase 2 completion summary
+- **[PHASE_3_COMPLETE.md](PHASE_3_COMPLETE.md)** - Phase 3 completion summary
 - **[buildplan/](buildplan/)** - 24 detailed task files with implementation guides
+- **[mobile/README.md](mobile/README.md)** - Mobile app setup and documentation
+- **[admin/README.md](admin/README.md)** - Admin dashboard documentation
 
 ## API Documentation
 
