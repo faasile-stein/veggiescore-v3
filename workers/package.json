@@ -1,0 +1,25 @@
+{
+  "name": "@veggiescore/workers",
+  "version": "1.0.0",
+  "description": "VeggieScore worker processes for crawling, OCR, parsing, and labeling",
+  "private": true,
+  "scripts": {
+    "dev": "node --watch shared/queue.js",
+    "test": "jest"
+  },
+  "keywords": ["veggiescore", "workers", "bullmq"],
+  "author": "VeggieScore Team",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "bullmq": "^5.1.0",
+    "dotenv": "^16.3.1",
+    "ioredis": "^5.3.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
