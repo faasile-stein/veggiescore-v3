@@ -1,0 +1,21 @@
+{
+  "name": "veggiescore-crawler",
+  "version": "1.0.0",
+  "description": "Web crawler for restaurant menu discovery",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "robots-parser": "^3.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -147,11 +147,11 @@ The project is organized into 5 phases over 16 weeks:
 - Worker infrastructure (Redis, BullMQ)
 - Basic Edge Functions (4 endpoints)
 
-### 📋 Phase 1: Crawler + OCR Workers (Weeks 3-5) - PENDING
+### ✅ Phase 1: Crawler + OCR Workers (Weeks 3-5) - COMPLETED
 - Web crawler with robots.txt compliance
 - OCR pipeline with PaddleOCR
-- Storage integration
-- Testing with 10+ restaurants
+- Supabase Storage integration (3 buckets)
+- Image preprocessing and text extraction
 
 ### ✅ Phase 2: Parsing, Labeling & Admin (Weeks 6-8) - COMPLETED
 - Menu parser service (OCR + JSON-LD)
@@ -165,11 +165,11 @@ The project is organized into 5 phases over 16 weeks:
 - Leaderboards (daily, weekly, all-time)
 - User profile, badges, and quest tracking
 
-### 📋 Phase 4: Embeddings & MunchMatcher (Weeks 12-14)
-- Embeddings pipeline
-- Semantic craving search
-- VeggieScore v2 algorithm
-- SEO optimization
+### ✅ Phase 4: Embeddings & MunchMatcher (Weeks 12-14) - COMPLETED
+- Embeddings pipeline with OpenAI (text-embedding-ada-002)
+- Semantic craving search (MunchMatcher)
+- VeggieScore v2 algorithm (variety + quality + balance)
+- Vector search with pgvector IVFFlat index
 
 ### 📋 Phase 5: Hardening, Scaling & Polish (Weeks 15-16)
 - Autoscaling workers (Kubernetes HPA)
@@ -185,8 +185,10 @@ See [buildplan/README.md](buildplan/README.md) for detailed task breakdown.
 - **[DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md)** - Comprehensive technical plan
 - **[PHASE_0_SETUP.md](PHASE_0_SETUP.md)** - Setup guide for local development
 - **[PHASE_0_COMPLETE.md](PHASE_0_COMPLETE.md)** - Phase 0 completion summary
+- **[PHASE_1_COMPLETE.md](PHASE_1_COMPLETE.md)** - Phase 1 completion summary
 - **[PHASE_2_COMPLETE.md](PHASE_2_COMPLETE.md)** - Phase 2 completion summary
 - **[PHASE_3_COMPLETE.md](PHASE_3_COMPLETE.md)** - Phase 3 completion summary
+- **[PHASE_4_COMPLETE.md](PHASE_4_COMPLETE.md)** - Phase 4 completion summary
 - **[buildplan/](buildplan/)** - 24 detailed task files with implementation guides
 - **[mobile/README.md](mobile/README.md)** - Mobile app setup and documentation
 - **[admin/README.md](admin/README.md)** - Admin dashboard documentation
@@ -226,12 +228,61 @@ Get detailed place information.
 #### `GET /health-check`
 System health status.
 
+#### `POST /award-points` (Phase 3)
+Award points to users for actions.
+
+```json
+{
+  "userId": "uuid",
+  "action": "discover_place",
+  "metadata": { "place_id": "uuid" }
+}
+```
+
+#### `GET /get-user-stats` (Phase 3)
+Get user statistics, badges, quests, and activity.
+
+```
+?userId=uuid
+```
+
+#### `GET /get-leaderboard` (Phase 3)
+Get leaderboard rankings.
+
+```
+?scope=global&timeframe=weekly&limit=100
+```
+
+#### `POST /search-by-craving` (Phase 4)
+Search restaurants by natural language craving.
+
+```json
+{
+  "craving": "spicy noodles",
+  "latitude": 37.7749,
+  "longitude": -122.4194,
+  "maxDistance": 5000,
+  "dietaryFilters": ["vegan"]
+}
+```
+
+#### `POST /compute-veggie-score` (Phase 4)
+Calculate VeggieScore v2 for a place.
+
+```json
+{
+  "placeId": "uuid"
+}
+```
+
 ## Database Schema
 
 - **Core**: `places`, `menus`, `menu_items`
 - **Processing**: `crawl_runs`, `raw_artifacts`, `jobs`
 - **Gamification**: `points_transactions`, `user_levels`, `user_badges`, `quests`, `user_quests`, `leaderboard_cache`
 - **Admin**: `admin_audit_logs`, `manual_overrides`, `restaurant_claims`, `restaurant_owners`, `admin_users`
+- **Search** (Phase 4): `craving_search_cache`, `search_analytics`, `embedding_stats`
+- **Storage** (Phase 1): Buckets: `menus`, `artifacts`, `user-uploads`
 
 ## Contributing
 

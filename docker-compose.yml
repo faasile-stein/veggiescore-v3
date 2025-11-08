@@ -43,41 +43,41 @@ services:
     networks:
       - veggiescore-network
 
-  # Crawler Worker (to be implemented in Phase 1)
-  # crawler-worker:
-  #   build:
-  #     context: ./workers/crawler
-  #     dockerfile: Dockerfile
-  #   container_name: veggiescore-crawler
-  #   environment:
-  #     - REDIS_URL=redis://redis:6379
-  #     - SUPABASE_URL=${SUPABASE_URL}
-  #     - SUPABASE_KEY=${SUPABASE_ANON_KEY}
-  #     - WORKER_CONCURRENCY=3
-  #   depends_on:
-  #     - redis
-  #   networks:
-  #     - veggiescore-network
-  #   restart: unless-stopped
+  # Crawler Worker (Phase 1)
+  crawler-worker:
+    build:
+      context: ./workers/crawler
+      dockerfile: Dockerfile
+    container_name: veggiescore-crawler
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - WORKER_CONCURRENCY=3
+    depends_on:
+      - redis
+    networks:
+      - veggiescore-network
+    restart: unless-stopped
 
-  # OCR Worker (to be implemented in Phase 1)
-  # ocr-worker:
-  #   build:
-  #     context: ./workers/ocr
-  #     dockerfile: Dockerfile
-  #   container_name: veggiescore-ocr
-  #   environment:
-  #     - REDIS_URL=redis://redis:6379
-  #     - SUPABASE_URL=${SUPABASE_URL}
-  #     - SUPABASE_KEY=${SUPABASE_ANON_KEY}
-  #     - WORKER_CONCURRENCY=2
-  #   depends_on:
-  #     - redis
-  #   networks:
-  #     - veggiescore-network
-  #   restart: unless-stopped
-  #   deploy:
-  #     replicas: 3
+  # OCR Worker (Phase 1)
+  ocr-worker:
+    build:
+      context: ./workers/ocr
+      dockerfile: Dockerfile
+    container_name: veggiescore-ocr
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - WORKER_CONCURRENCY=2
+    depends_on:
+      - redis
+    networks:
+      - veggiescore-network
+    restart: unless-stopped
+    deploy:
+      replicas: 3
 
   # Parser Worker (Phase 2)
   parser-worker:
@@ -119,6 +119,23 @@ services:
     restart: unless-stopped
     deploy:
       replicas: 2
+
+  # Embeddings Worker (Phase 4)
+  embeddings-worker:
+    build:
+      context: ./workers/embeddings
+      dockerfile: Dockerfile
+    container_name: veggiescore-embeddings
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - BACKFILL_ON_START=false
+    depends_on:
+      - redis
+    networks:
+      - veggiescore-network
+    restart: unless-stopped
 
 volumes:
   redis-data:
