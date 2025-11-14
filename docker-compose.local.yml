@@ -7,7 +7,7 @@ services:
   # Redis - expose port for local access
   redis:
     ports:
-      - "6379:6379"
+      - "8379:6379"
     volumes:
       - redis-local-data:/data
 
@@ -90,7 +90,7 @@ services:
       dockerfile: Dockerfile
     container_name: veggiescore-admin
     ports:
-      - "3000:3000"
+      - "8000:3000"
     volumes:
       - ./admin:/app
       - /app/node_modules

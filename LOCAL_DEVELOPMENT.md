@@ -59,7 +59,7 @@ SUPABASE_SERVICE_KEY=<shown-after-supabase-start>
 
 # Redis
 REDIS_HOST=redis
-REDIS_PORT=6379
+REDIS_PORT=8379
 
 # OpenAI (for AI classification and embeddings)
 OPENAI_API_KEY=your-openai-api-key
@@ -111,8 +111,8 @@ Once all services are running:
 | Supabase Studio | `http://localhost:54323` | Database UI & Management |
 | Supabase API | `http://localhost:54321` | REST & GraphQL API |
 | PostgreSQL | `localhost:54322` | Direct Database Access |
-| Redis | `localhost:6379` | Cache & Queue |
-| Admin Dashboard | `http://localhost:3000` | Admin UI |
+| Redis | `localhost:8379` | Cache & Queue |
+| Admin Dashboard | `http://localhost:8000` | Admin UI |
 
 ## Using the Startup Script
 
@@ -242,7 +242,7 @@ docker-compose -f docker-compose.yml -f docker-compose.local.yml exec parser-wor
 ### Infrastructure Services
 
 **Redis** (`redis:7-alpine`)
-- Port: 6379
+- Port: 8379
 - Purpose: Job queue (BullMQ) and caching
 - Data: Persistent volume `redis-local-data`
 
@@ -286,7 +286,7 @@ docker-compose -f docker-compose.yml -f docker-compose.local.yml exec parser-wor
 ### Application Services
 
 **Admin Dashboard** (Next.js 14)
-- Port: 3000
+- Port: 8000
 - Purpose: Admin panel for managing places and menus
 - Hot reload: Enabled
 - Auth: Supabase Auth
@@ -405,9 +405,9 @@ docker stats veggiescore-ocr
 **Issue:** Port already in use
 
 ```bash
-# Find process using port 5432
-lsof -i :5432  # macOS/Linux
-netstat -ano | findstr :5432  # Windows
+# Find process using port 8432
+lsof -i :8432  # macOS/Linux
+netstat -ano | findstr :8432  # Windows
 
 # Kill the process or change the port in docker-compose.local.yml
 ```
