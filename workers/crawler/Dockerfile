@@ -1,19 +1,16 @@
 FROM node:18-alpine
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package.json ./
+# Copy shared dependencies
+COPY workers/shared ./shared
+COPY workers/crawler/package*.json ./
 
 # Install dependencies
 RUN npm install --production
 
-# Copy shared utilities
-COPY ../shared ./shared
-
 # Copy crawler code
-COPY index.js ./
+COPY workers/crawler .
 
 # Run crawler
 CMD ["node", "index.js"]
