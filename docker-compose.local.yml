@@ -1,8 +1,6 @@
 # Docker Compose Local Development Override
 # Use with: docker-compose -f docker-compose.yml -f docker-compose.local.yml up
 
-version: '3.8'
-
 services:
   # Redis - expose port for local access
   redis:
@@ -17,8 +15,8 @@ services:
   # Crawler Worker - enable debugging
   crawler-worker:
     build:
-      context: ./workers/crawler
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: workers/crawler/Dockerfile
     volumes:
       - ./workers/crawler:/app
       - ./workers/shared:/app/shared
