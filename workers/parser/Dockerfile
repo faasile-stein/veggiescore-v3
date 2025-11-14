@@ -6,7 +6,7 @@ WORKDIR /app
 COPY workers/shared ./shared
 COPY workers/parser/package*.json ./
 
-RUN npm ci --only=production
+RUN npm install --production
 
 COPY workers/parser .
 
