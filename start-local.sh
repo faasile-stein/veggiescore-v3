@@ -234,8 +234,8 @@ health_check() {
     echo -e "  Supabase Studio:  ${GREEN}http://localhost:54323${NC}"
     echo -e "  Supabase API:     ${GREEN}http://localhost:54321${NC}"
     echo -e "  Database:         ${GREEN}postgresql://postgres:postgres@localhost:54322/postgres${NC}"
-    echo -e "  Redis:            ${GREEN}localhost:6379${NC}"
-    echo -e "  Admin Dashboard:  ${GREEN}http://localhost:3000${NC}"
+    echo -e "  Redis:            ${GREEN}localhost:8379${NC}"
+    echo -e "  Admin Dashboard:  ${GREEN}http://localhost:8000${NC}"
     echo ""
 }
 
